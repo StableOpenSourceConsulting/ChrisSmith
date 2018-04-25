@@ -1,0 +1,9 @@
+- hosts: all #Needed to prevent hosts being specified 
+  tasks:
+   - name: Install latest nginx web server if not already installed
+     become: true
+     become_method: sudo
+     apt:
+        name: nginx
+        state: present
+        #state: absent

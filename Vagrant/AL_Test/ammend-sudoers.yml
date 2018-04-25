@@ -1,0 +1,15 @@
+- hosts: all
+  tasks:
+        - name: ammend /etc/sudoers to only allow admin group access with a password
+          become: true 
+
+          lineinfile:
+            path: /etc/sudoers
+            backup: yes
+            state: present
+            regexp: '^%admin\s'
+            line: '%admin ALL=(ALL) PASSWD: ALL'
+            validate: '/usr/sbin/visudo -cf %s'
+        #owner: root
+        #group: root
+        #mode: 0441

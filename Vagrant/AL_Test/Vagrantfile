@@ -1,0 +1,120 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "puppetlabs/ubuntu-14.04-64-puppet"
+
+  config.vm.box_check_update = true
+  config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+
+#change hostname of vm to prevent confussion  
+config.vm.hostname = 'automationlogic-test-ubuntu-cs-1'
+#initial http port forward to allow host broswer access to vm
+config.vm.network :forwarded_port, guest: 80, host: 8080
+
+#Install minimal packages to make vagrant vm less vulnerable and useable
+config.vm.provision "shell", inline: <<-SHELL
+#echo "----------------------------------"
+#echo "Updating Operating System Packages"
+#echo "----------------------------------"
+#apt-get -y update
+echo "----------------------------------"
+echo "Installing Vim editor"
+echo "----------------------------------"
+apt-get install -y vim
+echo "----------------------------------"
+echo "Installing htop monitoring"
+echo "----------------------------------"
+apt-get install -y htop 
+
+#echo "----------------------------------"
+#echo "Installing Ansible Configuration tool"
+#echo "----------------------------------"
+#apt-get install software-properties-common
+#apt-add-repository ppa:ansible/ansible
+#apt-get update
+#apt-get install -y ansible
+SHELL
+
+# Ansible install script for Ubuntu and install php
+config.vm.provision "shell", inline: <<-SHELL
+#
+echo "----------------------------------"
+echo "Installing Ansible to latest version to fix bugs"
+echo "----------------------------------"
+if ! which ansible >/dev/null; then
+  apt-get update -y
+  apt-get install -y software-properties-common
+  apt-add-repository -y ppa:ansible/ansible
+  apt-get update -y
+  apt-get install -y ansible
+fi
+SHELL
+end
+
+#Even though we could use vagrant to install nginx, lets use ansible instead
+
+# This section was removed because of known issue with ansible 1.5 and vagrant local
+#'hostlist is empty' workaround
+#https://github.com/hashicorp/vagrant/issues/3096#issuecomment-37237086
+#config.vm.provision "shell", inline: <<-SHELL
+#echo "----------------------------------"
+#echo "Installing Nginx via playbook"
+#echo "----------------------------------"
+#ansible-playbook install-nginx.yml -vvv
+#SHELL
+
+# Better Solution not to use shell to run ansible:
+#config.vm.provision "ansible" do |ansible|
+
+  Vagrant.configure("2") do |config|
+  # Run Ansible from the Vagrant VM
+  config.vm.provision "ansible_local" do |ansible|
+     ansible.verbose = "true"
+#    ansible.limit = "all"
+    ansible.playbook = "install-nginx.yml"
+ end
+
+# Echo Ports that Nginx is listening to
+config.vm.provision "shell", inline: <<-SHELL
+echo "----------------------------------"
+echo "Wait to check Nginx Listening Port"
+echo "----------------------------------"
+echo "Nginx port should be 80, its currently:"
+netstat -tlnp|grep nginx| awk {'print $4'}| cut -d ':' -f2
+# add a pause to alow value to be read.
+sleep 3
+SHELL
+end
+
+# As vagrant user can already sudo su without a password ( due to /etc/sudoers.d/10_vagrant file, do nothing but DO ammend /etc/sudoers for admin to be prompted with password:
+
+  Vagrant.configure("2") do |config|
+  config.vm.provision "ansible_local" do |ansible|
+    ansible.verbose = "true"
+    ansible.playbook = "ammend-sudoers.yml"
+  end
+
+# Copy application file and setup nginx as php app server:
+
+#  Vagrant.configure("2") do |config|
+  config.vm.provision "ansible_local" do |ansible|
+    ansible.verbose = "true"
+    ansible.playbook = "app-copy-nginx-reconfig-for-php.yml"
+  end
+
+## Install php for application server
+# config.vm.provision "shell", inline: <<-SHELL
+#echo "----------------------------------"
+#echo "Installing PHP for application server"
+#echo "----------------------------------"
+#apt-get install -y php5-common php5-cli php5-fpm
+#SHELL
+
+#Vagrant.configure("2") do |config|
+#  config.vm.provision "ansible_local" do |ansible|
+#    ansible.verbose = "true"
+#    ansible.playbook = "ammend-sudoers.yml"
+#  end
+
+end
