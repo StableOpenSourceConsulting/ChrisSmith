@@ -1,0 +1,42 @@
+- hosts: all
+  become: true
+  tasks:
+  - name: Copy php hello world application script to nginx html location  
+    copy:
+     src: hello.php
+     dest: /usr/share/nginx/html/index.php
+     mode: 0755
+     #state: present
+     #owner: root
+     #group: root
+     #mode: 0441
+
+
+  - name: Install multiple php packages for nginx
+    apt:
+      name: "{{ item }}"
+      state: present  
+    with_items:
+      - 'php5-common'
+      - 'php5-cli'
+      - 'php5-fpm'
+
+  - name: Read file blocks, ready to insert into nginx config
+    shell: cat nginx-php-config.txt
+    register: data
+
+  - name: insert php code block read in previoys from txt file into nginx config for php scripts to run.
+    blockinfile:
+      path: /etc/nginx/sites-available/default
+      backup: yes
+      #      insertafter: EOF
+      # Search for regex in file to enter the php code block in correct place
+      insertbefore: '.+PHP'  
+      state: present  
+      block: |
+        {{ data.stdout }}
+
+  - name: Reload nginx service to reread updated php config
+    service:
+      name: nginx 
+      state: restarted 
