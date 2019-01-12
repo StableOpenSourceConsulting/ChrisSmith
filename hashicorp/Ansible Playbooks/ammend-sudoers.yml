@@ -1,6 +1,6 @@
 - hosts: all
   tasks:
-        - name: ammend /etc/sudoers to only allow admin group access with a password
+        - name: ammend /etc/sudoers and only allow admin group access with a password
           become: true 
 
           lineinfile:
