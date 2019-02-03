@@ -8,6 +8,6 @@ There will be some text notes, my latest CV too and maybe the odd bit of code Da
 CheerZ!
 
 Chris Smith
-Seaford, UK
+Sussex, UK
 +447340309723
 www.linkedin.com/in/chrisleighsmith
